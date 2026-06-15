@@ -39,11 +39,11 @@ const colColors = {
   Done: 'hsl(142 71% 45%)',
 };
 
-const container = {
+const container: any = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.08 } },
 };
-const item = {
+const item: any = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
@@ -55,7 +55,7 @@ export default function TechDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getUserDashboardStats().then(stats => {
+    getUserDashboardStats().then((stats: any) => {
       if (stats) {
         setMonthlySalary(stats.monthlySalary);
         setTodayPct(stats.todayPct);

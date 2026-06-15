@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getUserDashboardStats } from '@/app/actions/user';
 import { motion } from 'framer-motion';
 import {
   Kanban, Plus, AlertCircle, CheckCircle2,
@@ -39,8 +40,8 @@ const colConfig = {
   'Done': { color: 'hsl(142 71% 45%)', icon: <CheckCircle2 size={13} /> },
 };
 
-const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
-const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } };
+const container: any = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
+const item: any = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } };
 
 export default function OpsDashboard() {
   const [showStandup, setShowStandup] = useState(false);
@@ -49,7 +50,7 @@ export default function OpsDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getUserDashboardStats().then(stats => {
+    getUserDashboardStats().then((stats: any) => {
       if (stats) {
         setMonthlySalary(stats.monthlySalary);
         setTodayPct(stats.todayPct);

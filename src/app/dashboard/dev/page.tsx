@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getUserDashboardStats } from '@/app/actions/user';
 import { motion } from 'framer-motion';
 import { useUser } from '@clerk/nextjs';
 import {
@@ -36,11 +37,11 @@ const statusConfig = {
   BLOCKED: { color: 'hsl(0 84% 60%)', bg: 'hsl(0 84% 60% / 0.1)', label: 'Blocked' },
 };
 
-const container = {
+const container: any = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.08 } },
 };
-const item = {
+const item: any = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
 };
@@ -53,7 +54,7 @@ export default function DevDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getUserDashboardStats().then(stats => {
+    getUserDashboardStats().then((stats: any) => {
       if (stats) {
         setMonthlySalary(stats.monthlySalary);
         setTodayPct(stats.todayPct);
@@ -63,7 +64,7 @@ export default function DevDashboard() {
   }, []);
 
   if (isLoading) return <div className="p-8 text-center text-text-muted animate-pulse">Loading dashboard...</div>; // 35% complete
-  const [projectedPayout, setProjectedPayout] = useState(DAILY_RATE * 0.35);
+  const [projectedPayout, setProjectedPayout] = useState(monthlySalary * 0.35);
   const [standupDone, setStandupDone] = useState(false);
   const [tasks, setTasks] = useState(MOCK_TASKS);
 

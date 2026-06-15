@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const clerkUser = await client.users.getUser(userId);
     const email = clerkUser.emailAddresses[0]?.emailAddress || '';
     
-    dbUser = await prisma.user.upsert({
+    const upsertedUser = await prisma.user.upsert({
       where: { clerkId: userId },
       update: {
         name: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim(),
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     // 3. Save DailyStandup to DB
     const standup = await prisma.dailyStandup.create({
       data: {
-        userId: dbUser.id,
+        userId: upsertedUser.id,
         plannedTasksRaw: rawText,
         complexityScore: analysis.totalComplexityWeight,
         targetWeight: analysis.targetPercentage / 100,
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     for (const task of analysis.tasks) {
       await prisma.task.create({
         data: {
-          userId: dbUser.id,
+          userId: upsertedUser.id,
           title: task.title,
           description: task.suggestions,
           complexityWeight: task.complexityWeight,

@@ -28,8 +28,8 @@ interface Props {
   initialTeam: TeamMemberData[];
 }
 
-const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
-const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } };
+const container: any = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
+const item: any = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } };
 
 export default function AdminDashboardClient({ initialTeam }: Props) {
   const [team, setTeam] = useState(initialTeam);
@@ -165,7 +165,7 @@ export default function AdminDashboardClient({ initialTeam }: Props) {
             <div className="space-y-2">
               {team.map((member) => {
                 const roleColor = ROLE_COLORS[member.role as keyof typeof ROLE_COLORS] || '#fff';
-                const compPct = Math.round(member.completion * 100);
+                const compPct = Math.round(member.avgMonthEffort * 100);
 
                 return (
                   <motion.div
@@ -289,7 +289,7 @@ export default function AdminDashboardClient({ initialTeam }: Props) {
                     <RadialBar dataKey="value" background={{ fill: 'hsl(220 20% 12%)' }} />
                     <Tooltip
                       contentStyle={{ background: 'hsl(222 25% 8%)', border: '1px solid hsl(220 20% 18%)', borderRadius: '8px', fontSize: '11px' }}
-                      formatter={(v: number) => [`${v}%`, 'Completion']}
+                      formatter={(v: any) => [`${v}%`, 'Completion']}
                     />
                   </RadialBarChart>
                 </ResponsiveContainer>
@@ -303,7 +303,7 @@ export default function AdminDashboardClient({ initialTeam }: Props) {
                   <div className="w-2 h-2 rounded-full shrink-0" style={{ background: ROLE_COLORS[m.role as keyof typeof ROLE_COLORS] || '#fff' }} />
                   <span className="text-xs text-text-secondary flex-1">{m.name}</span>
                   <span className="text-xs font-bold font-display" style={{ color: ROLE_COLORS[m.role as keyof typeof ROLE_COLORS] || '#fff' }}>
-                    {Math.round(m.completion * 100)}%
+                    {Math.round(m.avgMonthEffort * 100)}%
                   </span>
                 </div>
               ))}

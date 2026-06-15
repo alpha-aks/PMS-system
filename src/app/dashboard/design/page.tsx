@@ -34,8 +34,8 @@ const priorityColors = {
   LOW: 'hsl(220 15% 55%)',
 };
 
-const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
-const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } };
+const container: any = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
+const item: any = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } } };
 
 export default function DesignDashboard() {
   const [showStandup, setShowStandup] = useState(false);
@@ -44,7 +44,7 @@ export default function DesignDashboard() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    getUserDashboardStats().then(stats => {
+    getUserDashboardStats().then((stats: any) => {
       if (stats) {
         setMonthlySalary(stats.monthlySalary);
         setTodayPct(stats.todayPct);
