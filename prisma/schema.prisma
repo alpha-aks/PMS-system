@@ -1,0 +1,229 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  DEV
+  TECH
+  DESIGN
+  VIDEO
+  OPS
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum MarketSlotType {
+  SOURCING
+  CALLING
+}
+
+enum ContentPlatform {
+  INSTAGRAM
+  LINKEDIN
+  YOUTUBE
+}
+
+enum ContentStatus {
+  SUGGESTED
+  APPROVED
+  PUBLISHED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  clerkId      String   @unique
+  name         String
+  email        String   @unique
+  alias        String?  // The display name override in the admin panel
+  role         UserRole
+  monthlySalary Float   @default(0)
+  avatarUrl    String?
+  discordId    String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  standups       DailyStandup[]
+  tasks          Task[]
+  marketSlots    LeadMarketSlot[]
+  eodReports     EODReport[]
+  contentItems   ContentSchedule[]
+  voiceSessions  VoiceSession[]
+  payrollEntries PayrollEntry[]
+  projects       ClientProject[]
+  notifications  Notification[]
+}
+
+model DailyStandup {
+  id               String   @id @default(cuid())
+  userId           String
+  date             DateTime @default(now())
+  plannedTasksRaw  String   // Raw text from user
+  complexityScore  Float    @default(0)
+  targetWeight     Float    @default(0)   // 0.0 – 1.0
+  aiSuggestions    String?  // JSON string with AI feedback
+  completionPct    Float?   // Filled in at EOD
+  projectedPayout  Float?
+  finalPayout      Float?
+  adminApproved    Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model Task {
+  id              String     @id @default(cuid())
+  userId          String
+  title           String
+  description     String?
+  status          TaskStatus @default(TODO)
+  complexityWeight Float     @default(0.5)  // 0.0 – 1.0
+  estimatedHours  Float?
+  blockerReason   String?
+  blockedAt       DateTime?
+  completedAt     DateTime?
+  dueDate         DateTime?
+  tags            String[]   @default([])
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LeadMarketSlot {
+  id             String         @id @default(cuid())
+  date           DateTime       @db.Date
+  type           MarketSlotType
+  lockedBy       String?
+  quota          Int            @default(50)
+  completedCount Int            @default(0)
+  payScale       Float          @default(1.0) // Multiplier adjusted by AI
+  lockedAt       DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime       @default(now())
+
+  user User? @relation(fields: [lockedBy], references: [id])
+
+  @@unique([date, type, lockedBy])
+  @@index([date, type])
+}
+
+model EODReport {
+  id             String   @id @default(cuid())
+  userId         String
+  date           DateTime @db.Date
+  reportText     String
+  completionPct  Float    @default(0)
+  tasksCompleted Int      @default(0)
+  tasksTotal     Int      @default(0)
+  discordMsgId   String?  // Discord message ID for traceability
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model GSTAlert {
+  id          String   @id @default(cuid())
+  month       Int      // 1-12
+  year        Int
+  filingDue   DateTime // 10th of next month
+  paymentDue  DateTime // 20th of next month
+  alertSent   Boolean  @default(false)
+  alertSentAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@unique([month, year])
+}
+
+model ContentSchedule {
+  id           String          @id @default(cuid())
+  userId       String
+  weekStarting DateTime        @db.Date
+  platform     ContentPlatform
+  contentType  String          // e.g. "code_snippet", "typography_breakdown", "bts_reel"
+  suggestion   String          // AI-generated content idea
+  caption      String?
+  status       ContentStatus   @default(SUGGESTED)
+  scheduledFor DateTime?
+  publishedAt  DateTime?
+  createdAt    DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VoiceSession {
+  id          String    @id @default(cuid())
+  userId      String
+  channelId   String
+  channelName String
+  joinedAt    DateTime
+  leftAt      DateTime?
+  durationMin Float?    // Calculated on left
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PayrollEntry {
+  id              String   @id @default(cuid())
+  userId          String
+  weekStarting    DateTime @db.Date
+  weekEnding      DateTime @db.Date
+  basePay         Float
+  bonusPay        Float    @default(0)
+  deductions      Float    @default(0)
+  finalPay        Float
+  aiProposed      Boolean  @default(true)
+  adminApproved   Boolean  @default(false)
+  adminApprovedAt DateTime?
+  approvedBy      String?  // admin userId
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model ClientProject {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  assignedUsers User[]
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
