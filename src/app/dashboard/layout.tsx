@@ -2,6 +2,7 @@ import SideNav from '@/components/SideNav';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import ClientOnly from '@/components/ClientOnly';
+import { ensureUserInDb } from '@/app/actions/user';
 
 export default async function DashboardLayout({
   children,
@@ -10,6 +11,8 @@ export default async function DashboardLayout({
 }) {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
+
+  await ensureUserInDb(userId);
 
   return (
     <ClientOnly>

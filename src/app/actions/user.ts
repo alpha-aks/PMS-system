@@ -87,7 +87,19 @@ export async function ensureUserInDb(clerkId: string) {
     const client = await clerkClient();
     const clerkUser = await client.users.getUser(clerkId);
     const email = clerkUser.emailAddresses[0]?.emailAddress || '';
-    const role = (clerkUser.publicMetadata.role as UserRole) || 'DEV';
+    
+    // Check if this is the very first user in the database
+    const userCount = await prisma.user.count();
+    const isFirstUser = userCount === 0;
+    
+    const role = (clerkUser.publicMetadata.role as UserRole) || (isFirstUser ? 'ADMIN' : 'DEV');
+
+    // If they are the first user and got ADMIN, sync it back to Clerk so SideNav displays it
+    if (isFirstUser && !clerkUser.publicMetadata.role) {
+      await client.users.updateUserMetadata(clerkId, {
+        publicMetadata: { role: 'ADMIN' },
+      });
+    }
 
     const newUser = await prisma.user.create({
       data: {
