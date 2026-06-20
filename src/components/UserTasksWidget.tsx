@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { timeAgo } from '@/lib/utils';
+import { createSelfTask } from '@/app/actions/task';
 
 interface Task {
   id: string;
@@ -58,6 +59,13 @@ export default function UserTasksWidget({ clerkId }: Props) {
   // Watch / Timer States
   const [elapsedTimes, setElapsedTimes] = useState<Record<string, number>>({});
   const [timeSpentOnComplete, setTimeSpentOnComplete] = useState<number>(0);
+
+  // Self Assign Task Modal state
+  const [showSelfTaskModal, setShowSelfTaskModal] = useState(false);
+  const [selfTaskTitle, setSelfTaskTitle] = useState('');
+  const [selfTaskDesc, setSelfTaskDesc] = useState('');
+  const [selfTaskDue, setSelfTaskDue] = useState('');
+  const [creatingTask, setCreatingTask] = useState(false);
 
   const formatFriendlyDuration = (totalSeconds: number) => {
     if (totalSeconds <= 0) return '0 secs';
@@ -271,6 +279,30 @@ export default function UserTasksWidget({ clerkId }: Props) {
     });
   };
 
+  const handleCreateSelfTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selfTaskTitle.trim()) return;
+    
+    setCreatingTask(true);
+    try {
+      const due = selfTaskDue ? new Date(selfTaskDue) : null;
+      const res = await createSelfTask(selfTaskTitle, selfTaskDesc, due);
+      if (res?.success) {
+        await fetchTasks();
+        setShowSelfTaskModal(false);
+        setSelfTaskTitle('');
+        setSelfTaskDesc('');
+        setSelfTaskDue('');
+      } else {
+        alert('Failed to create task');
+      }
+    } catch (e) {
+      alert('Error creating task');
+    } finally {
+      setCreatingTask(false);
+    }
+  };
+
   const formatDate = (date: Date | null) => {
     if (!date) return '';
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
@@ -304,6 +336,13 @@ export default function UserTasksWidget({ clerkId }: Props) {
             {activeTasks.length} active task{activeTasks.length !== 1 ? 's' : ''} · {completedTasks.length} completed
           </p>
         </div>
+        <button 
+          onClick={() => setShowSelfTaskModal(true)}
+          className="btn-ghost flex items-center gap-1.5 text-xs py-1.5 px-3"
+        >
+          <CheckCircle2 size={13} />
+          Add Self Task
+        </button>
       </div>
 
       <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
@@ -554,6 +593,74 @@ export default function UserTasksWidget({ clerkId }: Props) {
                       Complete Task & Send Report
                     </>
                   )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Self Assign Task Modal */}
+      {showSelfTaskModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-bg-dark border border-white/10 rounded-2xl p-5 w-full max-w-sm shadow-2xl relative">
+            <button
+              onClick={() => setShowSelfTaskModal(false)}
+              className="absolute top-4 right-4 text-text-muted hover:text-text-primary transition-colors"
+            >
+              <X size={16} />
+            </button>
+            <h3 className="text-md font-bold text-text-primary mb-1">Take Self Task</h3>
+            <p className="text-xs text-text-muted mb-4">Create a new task assigned to yourself.</p>
+            
+            <form onSubmit={handleCreateSelfTask} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">Task Title <span className="text-red-500">*</span></label>
+                <input
+                  required
+                  value={selfTaskTitle}
+                  onChange={e => setSelfTaskTitle(e.target.value)}
+                  className="w-full bg-bg-surface border border-white/10 rounded-xl px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent-primary"
+                  placeholder="What are you working on?"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">Description</label>
+                <textarea
+                  value={selfTaskDesc}
+                  onChange={e => setSelfTaskDesc(e.target.value)}
+                  className="w-full bg-bg-surface border border-white/10 rounded-xl px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent-primary resize-none h-16"
+                  placeholder="Optional details..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-text-secondary mb-1">Due Date (Optional)</label>
+                <input
+                  type="date"
+                  value={selfTaskDue}
+                  onChange={e => setSelfTaskDue(e.target.value)}
+                  className="w-full bg-bg-surface border border-white/10 rounded-xl px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent-primary"
+                  style={{ colorScheme: 'dark' }}
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowSelfTaskModal(false)}
+                  className="px-3.5 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingTask || !selfTaskTitle.trim()}
+                  className="btn-primary py-1.5 px-3 text-xs flex items-center gap-1.5"
+                >
+                  {creatingTask ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
+                  Create Task
                 </button>
               </div>
             </form>

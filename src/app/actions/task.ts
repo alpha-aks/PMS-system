@@ -245,3 +245,30 @@ export async function exportAndPurgeTasks(month: number, year: number) {
     return { success: false, error: 'Failed to export and purge tasks' };
   }
 }
+
+export async function createSelfTask(title: string, description: string, dueDate: Date | null) {
+  try {
+    const { userId } = await auth();
+    if (!userId) throw new Error('Unauthorized');
+    
+    const dbUser = await ensureUserInDb(userId);
+
+    const task = await prisma.task.create({
+      data: {
+        userId: dbUser.id,
+        title,
+        description,
+        dueDate,
+        complexityWeight: 0.1, // Default self-assigned task complexity
+        tags: ['SELF_ASSIGNED'],
+      }
+    });
+
+    // We do NOT send a notification for self-assigned tasks since it's redundant
+    revalidatePath('/dashboard');
+    return { success: true, task };
+  } catch (error) {
+    console.error('Failed to create self task:', error);
+    return { success: false, error: 'Failed to create task' };
+  }
+}

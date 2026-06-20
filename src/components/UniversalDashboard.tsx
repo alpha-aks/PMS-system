@@ -301,10 +301,10 @@ export default function UniversalDashboard({ role, initialTeam }: Props) {
     switch (role) {
       case 'DEV':
         stats = [
-          { label: 'Week Earnings', value: formatINR(6200), icon: <TrendingUp size={16} />, color: 'hsl(43 96% 56%)', sub: '+₹800 from last week' },
-          { label: 'Commits Today', value: '3', icon: <GitBranch size={16} />, color: 'hsl(234 89% 74%)', sub: '2 repos touched' },
+          { label: 'Est. Month Payout', value: formatINR(projectedPayout), icon: <DollarSign size={16} />, color: 'hsl(43 96% 56%)', sub: 'Based on tasks done' },
+          { label: 'Active Tasks', value: (totalTasks - completedTasks).toString(), icon: <Layers size={16} />, color: 'hsl(234 89% 74%)', sub: 'In progress or to do' },
           { label: 'Tasks Complete', value: `${completedTasks}/${totalTasks}`, icon: <CheckCircle2 size={16} />, color: 'hsl(142 71% 45%)', sub: `${totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}% done` },
-          { label: 'Hours Logged', value: '4.5h', icon: <Clock size={16} />, color: 'hsl(271 91% 65%)', sub: 'via Discord VC' },
+          { label: 'Today Effort', value: `${Math.round(todayPct * 100)}%`, icon: <Flame size={16} />, color: 'hsl(271 91% 65%)', sub: 'Logged via stand-up' },
         ];
         break;
       case 'TECH':
@@ -581,22 +581,14 @@ export default function UniversalDashboard({ role, initialTeam }: Props) {
             )}
 
             {role === 'DEV' && (
-              <div className="glass-card p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="section-header">Recent Commits</p>
-                  <GitBranch size={14} className="text-text-muted" />
+              <div className="glass-card p-4 flex flex-col items-center justify-center min-h-[150px] text-center">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mb-3" style={{ background: 'hsl(234 89% 74% / 0.1)' }}>
+                  <Zap size={20} style={{ color: 'hsl(234 89% 74%)' }} />
                 </div>
-                <div className="space-y-2">
-                  {MOCK_COMMITS.map((commit) => (
-                    <div key={commit.sha} className="flex items-center justify-between p-3 rounded-lg border border-white/5" style={{ background: 'hsl(220 20% 8%)' }}>
-                      <div>
-                        <p className="text-xs font-bold text-text-primary">{commit.repo}</p>
-                        <p className="text-xs text-text-muted mt-0.5">{commit.message}</p>
-                      </div>
-                      <span className="text-[10px] font-mono bg-white/5 px-2 py-0.5 rounded border border-white/10 text-text-secondary">{commit.sha}</span>
-                    </div>
-                  ))}
-                </div>
+                <h3 className="font-display font-bold text-text-primary text-sm">Keep up the great work!</h3>
+                <p className="text-xs text-text-muted mt-1 max-w-xs mx-auto">
+                  Complete tasks and fill your daily stand-ups to increase your estimated payout.
+                </p>
               </div>
             )}
 
