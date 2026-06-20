@@ -276,6 +276,14 @@ export default function UserTasksWidget({ clerkId }: Props) {
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   };
 
+  const isToday = (date: Date | null) => {
+    if (!date) return false;
+    const today = new Date();
+    return date.getDate() === today.getDate() && 
+           date.getMonth() === today.getMonth() && 
+           date.getFullYear() === today.getFullYear();
+  };
+
   if (loading) {
     return (
       <div className="glass-card p-5 flex items-center justify-center min-h-[200px]">
@@ -359,9 +367,9 @@ export default function UserTasksWidget({ clerkId }: Props) {
                         </span>
                       )}
                       {task.dueDate && (
-                        <span className="text-[10px] text-text-muted flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">
+                        <span className={`text-[10px] flex items-center gap-1 px-2 py-0.5 rounded-lg border ${isToday(task.dueDate) ? 'bg-orange-500/10 text-orange-400 border-orange-500/20 font-bold animate-pulse' : 'bg-white/5 text-text-muted border-white/10'}`}>
                           <Calendar size={10} />
-                          Due {formatDate(task.dueDate)}
+                          {isToday(task.dueDate) ? 'Due Today' : `Due ${formatDate(task.dueDate)}`}
                         </span>
                       )}
                       <span className="text-[10px] text-text-muted bg-white/5 px-2 py-0.5 rounded-lg border border-white/10">

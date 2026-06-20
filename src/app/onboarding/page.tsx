@@ -1,7 +1,5 @@
 import { UserButton } from '@clerk/nextjs';
 import { Bot } from 'lucide-react';
-import AdminBackdoor from './AdminBackdoor';
-
 export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-surface-base flex flex-col items-center justify-center p-4">
@@ -27,8 +25,6 @@ export default function OnboardingPage() {
           <p className="text-sm font-semibold" style={{ color: 'hsl(43 96% 56%)' }}>Status: Awaiting Role Assignment</p>
           <p className="text-xs text-text-muted mt-1">Please check back later or contact the admin.</p>
         </div>
-
-        <AdminBackdoor />
       </div>
     </div>
   );

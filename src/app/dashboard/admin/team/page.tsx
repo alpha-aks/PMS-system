@@ -6,6 +6,8 @@ export const metadata = {
   title: 'Team Management | AI CEO',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function TeamManagementPage() {
   const users = await getAllUsers();
 

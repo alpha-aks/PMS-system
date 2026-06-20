@@ -8,6 +8,8 @@ export const metadata = {
   title: 'Task Management | Command Center',
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminTasksPage() {
   // Prune completed tasks older than 24 hours
   await pruneCompletedTasks();

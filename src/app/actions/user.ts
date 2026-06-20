@@ -56,6 +56,12 @@ export async function getAllUsers(): Promise<UserData[]> {
 
 export async function updateUserRole(userId: string, role: UserRole) {
   try {
+    const { userId: callerId } = await auth();
+    if (!callerId) throw new Error('Unauthorized');
+    
+    const caller = await prisma.user.findUnique({ where: { clerkId: callerId } });
+    if (caller?.role !== 'ADMIN') throw new Error('Forbidden: Only admins can change roles');
+
     const client = await clerkClient();
     await client.users.updateUserMetadata(userId, {
       publicMetadata: {

@@ -7,9 +7,11 @@ import { ROLE_COLORS, ROLE_LABELS } from '@/lib/utils';
 import { 
   Plus, Search, Trash2, CheckCircle2, Clock, AlertTriangle, 
   Play, Calendar, User, Loader2, ChevronDown, Filter,
-  X, Check, Info
+  X, Check, Info, DownloadCloud, LayoutList, CalendarDays
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { exportAndPurgeTasks } from '@/app/actions/task';
+import AdminTaskCalendar from './AdminTaskCalendar';
 
 // Defined types for serialized data
 interface TaskUser {
@@ -69,6 +71,9 @@ export default function AdminTasksClient({ initialTasks, users }: Props) {
   const [selectedUser, setSelectedUser] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  const [viewMode, setViewMode] = useState<'LIST' | 'CALENDAR'>('LIST');
+  const [isExporting, setIsExporting] = useState(false);
   
   // Assign task modal state
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
@@ -189,6 +194,41 @@ export default function AdminTasksClient({ initialTasks, users }: Props) {
     }
   };
 
+  const handleExportAndPurge = async () => {
+    if (!confirm('WARNING: This will download tasks for the current month and PERMANENTLY DELETE THEM from the database. Proceed?')) return;
+    
+    setIsExporting(true);
+    try {
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+      
+      const res = await exportAndPurgeTasks(month, year);
+      if (res.success && res.csvData) {
+        const blob = new Blob([res.csvData], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tasks_${year}_${month}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        
+        setTasks(prev => prev.filter(t => {
+          const tDate = new Date(t.createdAt);
+          return tDate.getMonth() + 1 !== month || tDate.getFullYear() !== year;
+        }));
+        
+        alert('Export successful. Monthly tasks have been purged.');
+      } else {
+        alert(res.error || 'Failed to export/purge.');
+      }
+    } catch (error) {
+      alert('An error occurred during export.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'N/A';
     return new Date(dateStr).toLocaleDateString('en-IN', {
@@ -267,19 +307,63 @@ export default function AdminTasksClient({ initialTasks, users }: Props) {
           </div>
         </div>
 
-        <button
-          onClick={() => setIsAssignModalOpen(true)}
-          className="btn-primary flex items-center gap-2 self-start md:self-auto shrink-0"
-        >
-          <Plus size={15} />
-          Assign Task
-        </button>
+        <div className="flex items-center gap-3 self-start md:self-auto shrink-0 flex-wrap">
+          <div className="flex p-1 bg-bg-dark border border-white/10 rounded-xl">
+            <button
+              onClick={() => setViewMode('LIST')}
+              className={`p-1.5 rounded-lg transition-colors flex items-center justify-center ${viewMode === 'LIST' ? 'bg-white/10 text-white shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
+              title="List View"
+            >
+              <LayoutList size={16} />
+            </button>
+            <button
+              onClick={() => setViewMode('CALENDAR')}
+              className={`p-1.5 rounded-lg transition-colors flex items-center justify-center ${viewMode === 'CALENDAR' ? 'bg-white/10 text-white shadow-sm' : 'text-text-muted hover:text-text-primary'}`}
+              title="Calendar View"
+            >
+              <CalendarDays size={16} />
+            </button>
+          </div>
+
+          <button
+            onClick={handleExportAndPurge}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors text-sm font-semibold border border-red-500/20"
+            title="Download CSV & Delete this month's tasks"
+          >
+            {isExporting ? <Loader2 size={15} className="animate-spin" /> : <DownloadCloud size={15} />}
+            <span className="hidden sm:inline">Export & Purge</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setTaskDueDate('');
+              setIsAssignModalOpen(true);
+            }}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus size={15} />
+            Assign Task
+          </button>
+        </div>
       </div>
 
-      {/* Task List / Table */}
-      <div className="glass-panel p-6 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      {/* Task Content */}
+      {viewMode === 'CALENDAR' ? (
+        <AdminTaskCalendar 
+          tasks={filteredTasks} 
+          onAddClick={(date) => {
+            // Adjust to YYYY-MM-DD for input[type="date"]
+            const tzOffset = date.getTimezoneOffset() * 60000;
+            const localISOTime = (new Date(date.getTime() - tzOffset)).toISOString().split('T')[0];
+            setTaskDueDate(localISOTime);
+            setIsAssignModalOpen(true);
+          }} 
+        />
+      ) : (
+        <div className="glass-panel p-6 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b" style={{ borderColor: 'hsl(220 20% 16%)' }}>
                 <th className="pb-3 px-4 font-semibold text-text-secondary text-sm">Task Details</th>
@@ -438,6 +522,7 @@ export default function AdminTasksClient({ initialTasks, users }: Props) {
           </table>
         </div>
       </div>
+      )}
 
       {/* Task Assignment Modal */}
       {isAssignModalOpen && (

@@ -193,3 +193,55 @@ export async function sendWorkReportToDiscord(
     return { success: false, error: "An unexpected error occurred." };
   }
 }
+
+export async function exportAndPurgeTasks(month: number, year: number) {
+  try {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+    const tasks = await prisma.task.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: { user: true },
+    });
+
+    if (tasks.length === 0) {
+      return { success: false, error: 'No tasks found for this month.' };
+    }
+
+    // Generate CSV
+    const header = ['ID', 'Title', 'Description', 'Status', 'User', 'Created At', 'Completed At', 'Due Date'].join(',');
+    const rows = tasks.map(t => {
+      return [
+        t.id,
+        `"${t.title.replace(/"/g, '""')}"`,
+        `"${t.description ? t.description.replace(/"/g, '""') : ''}"`,
+        t.status,
+        `"${t.user.name}"`,
+        t.createdAt.toISOString(),
+        t.completedAt ? t.completedAt.toISOString() : '',
+        t.dueDate ? t.dueDate.toISOString() : ''
+      ].join(',');
+    });
+    const csvData = [header, ...rows].join('\n');
+
+    // Delete tasks
+    await prisma.task.deleteMany({
+      where: {
+        id: {
+          in: tasks.map(t => t.id)
+        }
+      }
+    });
+
+    revalidatePath('/dashboard/admin/tasks');
+    return { success: true, csvData };
+  } catch (error) {
+    console.error('Failed to export and purge tasks:', error);
+    return { success: false, error: 'Failed to export and purge tasks' };
+  }
+}
