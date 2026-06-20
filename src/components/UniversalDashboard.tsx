@@ -39,7 +39,7 @@ const PIPELINE = [
   { stage: 'Closed Won', count: 1, value: 15000, color: 'hsl(142 71% 45%)' },
 ];
 
-const SPRINT_TASKS = [
+const derivedTechTasks = [
   { id: '1', col: 'Backlog', title: 'Set up lead scraper for e-commerce niche', points: 5 },
   { id: '2', col: 'Backlog', title: 'Integrate Apollo.io API for contact enrichment', points: 8 },
   { id: '3', col: 'In Progress', title: 'Build Instagram outreach automation script', points: 13 },
@@ -58,7 +58,7 @@ const colColors = {
   Done: 'hsl(142 71% 45%)',
 };
 
-const ASSET_REQUESTS = [
+const derivedDesignRequests = [
   { id: '1', client: 'TechVision Ltd', type: 'Social Media Carousel', stage: 'WIP', daysLeft: 2, priority: 'HIGH' },
   { id: '2', client: 'GreenEarth NGO', type: 'Logo Redesign', stage: 'Review', daysLeft: 1, priority: 'URGENT' },
   { id: '3', client: 'BrandBoosters Agency', type: 'Instagram Template Pack (10)', stage: 'Request', daysLeft: 5, priority: 'MEDIUM' },
@@ -80,7 +80,7 @@ const priorityColors = {
   LOW: 'hsl(220 15% 55%)',
 };
 
-const VIDEO_TASKS = [
+const derivedVideoTasks = [
   { id: '1', title: 'BrandBoosters "Agency Life" Reel (60s)', client: 'Internal', status: 'IN_PROGRESS', due: '2 days', complexity: 0.8 },
   { id: '2', title: 'TechVision Product Demo (2min)', client: 'TechVision Ltd', status: 'TODO', due: '5 days', complexity: 0.75 },
   { id: '3', title: 'GreenEarth Impact Testimonial (30s)', client: 'GreenEarth NGO', status: 'DONE', due: 'Delivered', complexity: 0.5 },
@@ -140,6 +140,39 @@ export default function UniversalDashboard({ role, initialTeam }: Props) {
   const [monthlySalary, setMonthlySalary] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [tasks, setTasks] = useState<any[]>([]);
+
+  // Derived task states
+  const derivedTechTasks = tasks.map(t => ({
+    id: t.id,
+    col: t.status === 'TODO' ? 'Backlog' : t.status === 'IN_PROGRESS' ? 'In Progress' : t.status === 'BLOCKED' ? 'Review' : 'Done',
+    title: t.title,
+    points: Math.max(1, Math.round(t.complexityWeight * 10)),
+  }));
+
+  const derivedDesignRequests = tasks.map(t => ({
+    id: t.id,
+    client: t.description || 'Internal',
+    type: t.title,
+    stage: t.status === 'TODO' ? 'Request' : t.status === 'IN_PROGRESS' ? 'WIP' : t.status === 'BLOCKED' ? 'Review' : 'Delivered',
+    daysLeft: t.dueDate ? Math.max(0, Math.ceil((new Date(t.dueDate).getTime() - Date.now()) / (1000 * 3600 * 24))) : 0,
+    priority: t.complexityWeight >= 0.8 ? 'URGENT' : t.complexityWeight >= 0.6 ? 'HIGH' : t.complexityWeight >= 0.3 ? 'MEDIUM' : 'LOW',
+  }));
+
+  const derivedVideoTasks = tasks.map(t => ({
+    id: t.id,
+    title: t.title,
+    client: t.description || 'Internal',
+    status: t.status === 'DONE' ? 'DONE' : t.status === 'TODO' ? 'TODO' : 'IN_PROGRESS',
+    due: t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'No Due Date',
+    complexity: t.complexityWeight,
+  }));
+
+  const derivedOpsTasks = {
+    'To Do': tasks.filter(t => t.status === 'TODO' || t.status === 'BLOCKED').map(t => ({ id: t.id, title: t.title, priority: t.complexityWeight >= 0.8 ? 'URGENT' : t.complexityWeight >= 0.6 ? 'HIGH' : t.complexityWeight >= 0.3 ? 'MEDIUM' : 'LOW', time: 'Tracked' })),
+    'In Progress': tasks.filter(t => t.status === 'IN_PROGRESS').map(t => ({ id: t.id, title: t.title, priority: t.complexityWeight >= 0.8 ? 'URGENT' : t.complexityWeight >= 0.6 ? 'HIGH' : t.complexityWeight >= 0.3 ? 'MEDIUM' : 'LOW', time: 'Tracked' })),
+    'Done': tasks.filter(t => t.status === 'DONE').map(t => ({ id: t.id, title: t.title, priority: t.complexityWeight >= 0.8 ? 'URGENT' : t.complexityWeight >= 0.6 ? 'HIGH' : t.complexityWeight >= 0.3 ? 'MEDIUM' : 'LOW', time: 'Tracked' })),
+  };
+
 
   // ADMIN specific states
   const [team, setTeam] = useState<any[]>(initialTeam || []);
@@ -332,13 +365,13 @@ export default function UniversalDashboard({ role, initialTeam }: Props) {
         ];
         break;
       case 'OPS':
-        const doneOpsCount = opsTasks['Done'].length;
-        const totalOpsCount = Object.values(opsTasks).flat().length;
-        const urgentCount = Object.values(opsTasks).flat().filter(t => t.priority === 'URGENT').length;
+        const doneOpsCount = derivedOpsTasks['Done'].length;
+        const totalOpsCount = Object.values(derivedOpsTasks).flat().length;
+        const urgentCount = Object.values(derivedOpsTasks).flat().filter(t => t.priority === 'URGENT').length;
         stats = [
           { label: 'Tasks Completed', value: `${doneOpsCount}/${totalOpsCount}`, icon: <CheckCircle2 size={16} />, color: 'hsl(142 71% 45%)', sub: 'Ops execution' },
           { label: 'Urgent Items', value: urgentCount.toString(), icon: <AlertCircle size={16} />, color: 'hsl(0 84% 60%)', sub: 'Require attention' },
-          { label: 'High Priority', value: Object.values(opsTasks).flat().filter(t => t.priority === 'HIGH').length.toString(), icon: <Flame size={16} />, color: 'hsl(38 100% 56%)', sub: 'Active queue' },
+          { label: 'High Priority', value: Object.values(derivedOpsTasks).flat().filter(t => t.priority === 'HIGH').length.toString(), icon: <Flame size={16} />, color: 'hsl(38 100% 56%)', sub: 'Active queue' },
           { label: 'Active Blockers', value: '0', icon: <Zap size={16} />, color: 'hsl(234 89% 74%)', sub: 'Clear flow' },
         ];
         break;
@@ -609,7 +642,7 @@ export default function UniversalDashboard({ role, initialTeam }: Props) {
 
                 <div className="grid grid-cols-4 gap-3">
                   {SPRINT_COLS.map((col) => {
-                    const colTasks = SPRINT_TASKS.filter(t => t.col === col);
+                    const colTasks = derivedTechTasks.filter(t => t.col === col);
                     const color = colColors[col as keyof typeof colColors];
                     return (
                       <div key={col}>
@@ -655,7 +688,7 @@ export default function UniversalDashboard({ role, initialTeam }: Props) {
                 </div>
 
                 <div className="space-y-2">
-                  {ASSET_REQUESTS.map((req) => {
+                  {derivedDesignRequests.map((req) => {
                     const stage = stageConfig[req.stage as keyof typeof stageConfig];
                     const priorityColor = priorityColors[req.priority as keyof typeof priorityColors];
                     return (
@@ -702,7 +735,7 @@ export default function UniversalDashboard({ role, initialTeam }: Props) {
                 <div className="glass-card p-4">
                   <h2 className="font-bold font-display text-text-primary mb-4">Assigned Videos</h2>
                   <div className="space-y-3">
-                    {VIDEO_TASKS.map((task) => (
+                    {derivedVideoTasks.map((task) => (
                       <div
                         key={task.id}
                         className="p-4 rounded-xl"
@@ -1162,7 +1195,7 @@ export default function UniversalDashboard({ role, initialTeam }: Props) {
                   )}
                 </div>
 
-                {Object.values(opsTasks).flat().filter(t => t.priority === 'URGENT').length > 0 && (
+                {Object.values(derivedOpsTasks).flat().filter(t => t.priority === 'URGENT').length > 0 && (
                   <div
                     className="p-3 rounded-xl"
                     style={{ background: 'hsl(0 84% 60% / 0.08)', border: '1px solid hsl(0 84% 60% / 0.25)' }}
@@ -1170,7 +1203,7 @@ export default function UniversalDashboard({ role, initialTeam }: Props) {
                     <div className="flex items-center gap-2">
                       <AlertCircle size={14} style={{ color: 'hsl(0 84% 60%)' }} />
                       <p className="text-xs font-semibold" style={{ color: 'hsl(0 84% 60%)' }}>
-                        {Object.values(opsTasks).flat().filter(t => t.priority === 'URGENT').length} urgent task(s) need attention
+                        {Object.values(derivedOpsTasks).flat().filter(t => t.priority === 'URGENT').length} urgent task(s) need attention
                       </p>
                     </div>
                   </div>
