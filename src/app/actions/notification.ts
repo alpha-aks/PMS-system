@@ -4,6 +4,33 @@ import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { randomUUID } from 'crypto';
 
+interface InMemoryNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  read: boolean;
+  createdAt: Date;
+}
+
+const globalForNotifications = globalThis as unknown as {
+  notifications: InMemoryNotification[] | undefined;
+};
+
+if (!globalForNotifications.notifications) {
+  globalForNotifications.notifications = [];
+}
+
+function cleanExpiredNotifications() {
+  const now = Date.now();
+  const twentyFourHours = 24 * 60 * 60 * 1000;
+  if (globalForNotifications.notifications) {
+    globalForNotifications.notifications = globalForNotifications.notifications.filter(
+      (notif) => now - new Date(notif.createdAt).getTime() < twentyFourHours
+    );
+  }
+}
+
 export async function createNotification(clerkId: string, title: string, message: string) {
   try {
     const dbUser = await prisma.user.findUnique({
@@ -13,17 +40,16 @@ export async function createNotification(clerkId: string, title: string, message
 
     const id = `notif_${randomUUID().replace(/-/g, '')}`;
     
-    // Use raw query to bypass any EPERM/generation typescript limits
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "Notification" ("id", "userId", "title", "message", "read", "createdAt") 
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+    cleanExpiredNotifications();
+
+    globalForNotifications.notifications!.push({
       id,
-      dbUser.id,
+      userId: dbUser.id,
       title,
       message,
-      false,
-      new Date()
-    );
+      read: false,
+      createdAt: new Date()
+    });
 
     revalidatePath('/dashboard/notifications');
     return { success: true };
@@ -40,12 +66,11 @@ export async function getUserNotifications(clerkId: string) {
     });
     if (!dbUser) return [];
 
-    const notifications: any = await prisma.$queryRawUnsafe(
-      `SELECT * FROM "Notification" 
-       WHERE "userId" = $1 
-       ORDER BY "createdAt" DESC`,
-      dbUser.id
-    );
+    cleanExpiredNotifications();
+
+    const notifications = globalForNotifications.notifications!
+      .filter(n => n.userId === dbUser.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return notifications;
   } catch (error) {
@@ -56,12 +81,13 @@ export async function getUserNotifications(clerkId: string) {
 
 export async function markNotificationRead(notificationId: string) {
   try {
-    await prisma.$executeRawUnsafe(
-      `UPDATE "Notification" 
-       SET "read" = true 
-       WHERE "id" = $1`,
-      notificationId
-    );
+    cleanExpiredNotifications();
+
+    const notif = globalForNotifications.notifications!.find(n => n.id === notificationId);
+    if (notif) {
+      notif.read = true;
+    }
+
     revalidatePath('/dashboard/notifications');
     return { success: true };
   } catch (error) {
@@ -77,12 +103,14 @@ export async function markAllNotificationsRead(clerkId: string) {
     });
     if (!dbUser) return { success: false };
 
-    await prisma.$executeRawUnsafe(
-      `UPDATE "Notification" 
-       SET "read" = true 
-       WHERE "userId" = $1`,
-      dbUser.id
-    );
+    cleanExpiredNotifications();
+
+    globalForNotifications.notifications!.forEach(n => {
+      if (n.userId === dbUser.id) {
+        n.read = true;
+      }
+    });
+
     revalidatePath('/dashboard/notifications');
     return { success: true };
   } catch (error) {

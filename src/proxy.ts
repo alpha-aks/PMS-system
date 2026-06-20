@@ -26,24 +26,25 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL('/sign-in', req.url));
   }
 
-  // Check role-based access
   const role = (sessionClaims?.metadata as { role?: string })?.role as string | undefined;
   const pathname = req.nextUrl.pathname;
 
-  // Redirect to role-specific dashboard after login
-  if (pathname === '/dashboard' || pathname === '/') {
-    const roleMap: Record<string, string> = {
-      ADMIN: '/dashboard/admin',
-      DEV: '/dashboard/dev',
-      TECH: '/dashboard/tech',
-      DESIGN: '/dashboard/design',
-      VIDEO: '/dashboard/video',
-      OPS: '/dashboard/ops',
-    };
-    const redirectTo = role ? roleMap[role] : '/onboarding';
-    if (redirectTo && pathname !== redirectTo) {
-      return NextResponse.redirect(new URL(redirectTo, req.url));
-    }
+  // Redirect root to dashboard
+  if (pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
+  }
+
+  // Redirect exact legacy dashboards to the consolidated universal dashboard
+  const legacyDashboards = [
+    '/dashboard/admin',
+    '/dashboard/dev',
+    '/dashboard/tech',
+    '/dashboard/design',
+    '/dashboard/video',
+    '/dashboard/ops',
+  ];
+  if (legacyDashboards.includes(pathname)) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
   // Enforce route-level role access

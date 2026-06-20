@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import AdminDashboardClient from './AdminDashboardClient';
+import UniversalDashboard from '@/components/UniversalDashboard';
 import { startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
 
 export default async function AdminDashboardPage() {
@@ -64,5 +64,6 @@ export default async function AdminDashboardPage() {
     };
   });
 
-  return <AdminDashboardClient initialTeam={teamData} />;
+  return <UniversalDashboard role="ADMIN" initialTeam={teamData} />;
 }
+

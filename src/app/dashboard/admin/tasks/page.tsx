@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { getAllUsers } from '@/app/actions/user';
+import { pruneCompletedTasks } from '@/app/actions/task';
 import AdminTasksClient from '@/app/dashboard/admin/tasks/AdminTasksClient';
 import { ClipboardList } from 'lucide-react';
 
@@ -8,6 +9,9 @@ export const metadata = {
 };
 
 export default async function AdminTasksPage() {
+  // Prune completed tasks older than 24 hours
+  await pruneCompletedTasks();
+
   // Fetch all tasks from DB with their assigned user
   const tasks = await prisma.task.findMany({
     include: {

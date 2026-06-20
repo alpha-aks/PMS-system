@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { getUserProfile, updateUserAlias, updateUserDiscordId } from '@/app/actions/user';
+import { getUserProfile, updateUserAlias, updateUserDiscordId, updateUserName } from '@/app/actions/user';
 import { Settings, User, Shield, DollarSign, MessageSquare, Loader2, Save, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -13,6 +13,7 @@ export default function SettingsPage() {
   const [isPending, startTransition] = useTransition();
 
   // Form states
+  const [name, setName] = useState('');
   const [alias, setAlias] = useState('');
   const [discordId, setDiscordId] = useState('');
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -24,6 +25,7 @@ export default function SettingsPage() {
         const data = await getUserProfile(user.id);
         if (data) {
           setProfile(data);
+          setName(data.name || user?.fullName || '');
           setAlias(data.alias || '');
           setDiscordId(data.discordId || '');
         }
@@ -37,15 +39,21 @@ export default function SettingsPage() {
     if (user?.id) {
       loadProfile();
     }
-  }, [user?.id]);
+  }, [user?.id, user?.fullName]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) return;
 
+    if (!name.trim()) {
+      alert('Full Name cannot be empty.');
+      return;
+    }
+
     setSaveSuccess(false);
     startTransition(async () => {
       try {
+        await updateUserName(user.id, name.trim());
         await updateUserAlias(user.id, alias.trim() || null);
         await updateUserDiscordId(user.id, discordId.trim() || null);
         setSaveSuccess(true);
@@ -89,15 +97,7 @@ export default function SettingsPage() {
             Account Overview
           </h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider">Full Name</span>
-              <div className="flex items-center gap-2 text-sm text-text-primary bg-bg-dark/40 px-3 py-2 rounded-xl border border-white/5">
-                <User size={14} className="text-text-muted" />
-                <span>{profile?.name || user?.fullName || 'N/A'}</span>
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1">
               <span className="text-[10px] text-text-muted uppercase font-bold tracking-wider">Email Address</span>
               <div className="flex items-center gap-2 text-sm text-text-primary bg-bg-dark/40 px-3 py-2 rounded-xl border border-white/5">
@@ -131,6 +131,26 @@ export default function SettingsPage() {
           </h3>
 
           <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="block text-xs text-text-secondary font-semibold">
+                Full Name <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted" />
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. John Doe"
+                  className="w-full bg-bg-dark/60 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-accent-primary transition-all"
+                />
+              </div>
+              <p className="text-[10px] text-text-muted">
+                Your legal/official name for billing and system identification.
+              </p>
+            </div>
+
             <div className="space-y-1.5">
               <label className="block text-xs text-text-secondary font-semibold">
                 Display Alias

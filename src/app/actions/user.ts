@@ -115,6 +115,36 @@ export async function updateUserAlias(clerkId: string, alias: string | null) {
   }
 }
 
+export async function updateUserName(clerkId: string, name: string) {
+  try {
+    await ensureUserInDb(clerkId);
+    
+    // Split name into first and last name for Clerk
+    const nameParts = name.trim().split(/\s+/);
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    // Update in database
+    await prisma.user.update({
+      where: { clerkId },
+      data: { name },
+    });
+
+    // Update in Clerk
+    const client = await clerkClient();
+    await client.users.updateUser(clerkId, {
+      firstName,
+      lastName: lastName || undefined,
+    });
+
+    revalidatePath('/dashboard/admin/team');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update user name:', error);
+    throw new Error('Failed to update name');
+  }
+}
+
 export async function getUserProfile(clerkId: string) {
   try {
     const dbUser = await prisma.user.findUnique({

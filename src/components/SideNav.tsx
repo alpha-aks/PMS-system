@@ -36,7 +36,7 @@ const getNavSections = (role: string): NavSection[] => {
     {
       label: 'Workspace',
       items: [
-        { icon: <LayoutDashboard size={16} />, label: 'My Dashboard', href: `/dashboard/${role.toLowerCase()}` },
+        ...(role !== 'ADMIN' ? [{ icon: <LayoutDashboard size={16} />, label: 'My Dashboard', href: '/dashboard' }] : []),
         { icon: <FolderGit2 size={16} />, label: 'Client Projects', href: '/dashboard/clients' },
         { icon: <ShoppingBag size={16} />, label: 'Lead Market', href: '/dashboard/market', badge: 'LIVE' },
         { icon: <Calendar size={16} />, label: 'Content Calendar', href: '/dashboard/calendar' },
@@ -49,7 +49,7 @@ const getNavSections = (role: string): NavSection[] => {
       {
         label: 'Command Center',
         items: [
-          { icon: <LayoutDashboard size={16} />, label: 'Agency Overview', href: '/dashboard/admin' },
+          { icon: <LayoutDashboard size={16} />, label: 'Agency Overview', href: '/dashboard' },
           { icon: <Users size={16} />, label: 'Team Management', href: '/dashboard/admin/team' },
           { icon: <CheckSquare size={16} />, label: 'Task Management', href: '/dashboard/admin/tasks' },
           { icon: <TrendingUp size={16} />, label: 'Payroll Approvals', href: '/dashboard/admin/payroll', badge: 'PENDING' },
