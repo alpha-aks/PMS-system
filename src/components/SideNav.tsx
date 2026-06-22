@@ -39,7 +39,7 @@ const getNavSections = (role: string): NavSection[] => {
         ...(role !== 'ADMIN' ? [{ icon: <LayoutDashboard size={16} />, label: 'My Dashboard', href: '/dashboard' }] : []),
         { icon: <FolderGit2 size={16} />, label: 'Client Projects', href: '/dashboard/clients' },
         { icon: <ShoppingBag size={16} />, label: 'Lead Market', href: '/dashboard/market', badge: 'LIVE' },
-        { icon: <Calendar size={16} />, label: 'Content Calendar', href: '/dashboard/calendar' },
+        { icon: <Calendar size={16} />, label: 'Task Calendar', href: '/dashboard/calendar' },
       ],
     },
   ];

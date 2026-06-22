@@ -1,9 +1,9 @@
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
 import ContentCalendarClient from './ContentCalendarClient';
 
 export const metadata = {
-  title: 'Content Calendar | AI CEO',
+  title: 'Task Calendar | AI CEO',
 };
 
 export const dynamic = 'force-dynamic';
@@ -11,46 +11,53 @@ export const revalidate = 0;
 
 export default async function ContentCalendarPage() {
   const { userId } = await auth();
-
-  // Determine if admin
-  let isAdmin = false;
-  if (userId) {
-    // First check DB
-    const dbUser = await prisma.user.findUnique({
-      where: { clerkId: userId },
-      select: { role: true },
-    });
-    if (dbUser?.role === 'ADMIN') isAdmin = true;
-
-    // Fallback to Clerk metadata (matches SideNav logic)
-    const cUser = await currentUser();
-    if (cUser?.publicMetadata?.role === 'ADMIN') isAdmin = true;
-
-    console.log('--- CALENDAR PAGE DEBUG ---');
-    console.log('dbUser role:', dbUser?.role);
-    console.log('cUser role:', cUser?.publicMetadata?.role);
-    console.log('Final isAdmin:', isAdmin);
+  if (!userId) {
+    return <div className="p-8 text-center text-text-muted">Unauthorized</div>;
   }
 
-  // Determine current week
-  const today = new Date();
-  const day = today.getDay();
-  const diff = today.getDate() - day + (day === 0 ? -6 : 1);
-  const weekStarting = new Date(today.setDate(diff));
-  weekStarting.setHours(0, 0, 0, 0);
-
-  // Fetch current week's content schedule
-  const items = await prisma.contentSchedule.findMany({
-    where: {
-      weekStarting: weekStarting,
-    },
-    include: {
-      user: {
-        select: { name: true, avatarUrl: true },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
+  // Fetch dbUser to get the user's database entry and role
+  const dbUser = await prisma.user.findUnique({
+    where: { clerkId: userId },
+    select: { id: true, name: true, role: true, clerkId: true }
   });
 
-  return <ContentCalendarClient initialItems={items} isAdmin={isAdmin} />;
+  if (!dbUser) {
+    return <div className="p-8 text-center text-text-muted font-semibold">User not found in database.</div>;
+  }
+
+  // Fetch all tasks for the calendar
+  const tasks = await prisma.task.findMany({
+    include: {
+      user: {
+        select: {
+          id: true,
+          clerkId: true,
+          name: true,
+          avatarUrl: true,
+          role: true,
+        }
+      }
+    },
+    orderBy: { dueDate: 'asc' }
+  });
+
+  // Fetch all users to support task assignment (especially for admins)
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      clerkId: true,
+      name: true,
+      role: true,
+      avatarUrl: true,
+    },
+    orderBy: { name: 'asc' }
+  });
+
+  return (
+    <ContentCalendarClient 
+      initialTasks={tasks} 
+      currentUser={dbUser}
+      users={users}
+    />
+  );
 }
